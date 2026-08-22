@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class UserStatus(Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
-
+# khong dum enum dc khong
 class UserRole(Enum):
     USER = "USER"
     ADMIN = "ADMIN"

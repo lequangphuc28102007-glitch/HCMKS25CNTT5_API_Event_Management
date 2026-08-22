@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.dependencies.auth import CurrentUser, DbSession
 from app.models.event import Event
-from app.models.event import EventTask
+from app.models.event_task import EventTask
 from app.schemas.event_task import EventTaskCreate, EventTaskResponse
 
 router = APIRouter(prefix="/events/{event_id}/tasks", tags=["event-tasks"])
