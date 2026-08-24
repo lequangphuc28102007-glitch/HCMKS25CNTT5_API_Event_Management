@@ -1,32 +1,51 @@
-from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
 
-from app.dependencies.auth import CurrentUser, DbSession
-from app.models.event import Event
-from app.models.event_task import EventTask
-from app.schemas.event_task import EventTaskCreate, EventTaskResponse
+from app.db.database import get_db
+from app.models import EventTask, Event
+from app.schemas.event_task import EventTaskCreate, EventTaskUpdate, EventTaskResponse
+from app.dependencies.auth import get_current_user
+from app.models import User
+from app.routers.event import log_event_action
 
-router = APIRouter(prefix="/events/{event_id}/tasks", tags=["event-tasks"])
+router = APIRouter(prefix="/events/{event_id}/tasks", tags=["event_tasks"])
 
-
-def owned_event(db: DbSession, event_id: int, user_id: int) -> Event:
-    event = db.scalar(select(Event).where(Event.id == event_id, Event.owner_id == user_id))
-    if event is None:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return event
-
-
-@router.post("", response_model=EventTaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(event_id: int, data: EventTaskCreate, db: DbSession, current_user: CurrentUser):
-    owned_event(db, event_id, current_user.id)
-    task = EventTask(event_id=event_id, title=data.title)
+@router.post("/", response_model=EventTaskResponse)
+def create_task(event_id: int, task_in: EventTaskCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Sự kiện không tồn tại")
+    task = EventTask(event_id=event_id, **task_in.dict())
     db.add(task)
     db.commit()
     db.refresh(task)
     return task
 
+@router.get("/", response_model=List[EventTaskResponse])
+def list_tasks(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(EventTask).filter(EventTask.event_id == event_id).all()
 
-@router.get("", response_model=list[EventTaskResponse])
-def list_tasks(event_id: int, db: DbSession, current_user: CurrentUser):
-    owned_event(db, event_id, current_user.id)
-    return list(db.scalars(select(EventTask).where(EventTask.event_id == event_id)))
+@router.patch("/{task_id}", response_model=EventTaskResponse)
+def update_task(event_id: int, task_id: int, task_in: EventTaskUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(EventTask).filter(EventTask.id == task_id, EventTask.event_id == event_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task không tồn tại")
+    for field, value in task_in.dict(exclude_unset=True).items():
+        setattr(task, field, value)
+    db.commit()
+    db.refresh(task)
+    log_event_action(db, task.id, current_user.id, "UPDATE_EVENT", "Updated event title")
+
+    return task
+
+@router.delete("/{task_id}")
+def delete_task(event_id: int, task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(EventTask).filter(EventTask.id == task_id, EventTask.event_id == event_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task không tồn tại")
+    db.delete(task)
+    db.commit()
+    log_event_action(db, event_id, current_user.id, "REMOVE_MEMBER", f"Removed user {task.user_id}")
+
+    return {"detail": "Đã xóa task"}

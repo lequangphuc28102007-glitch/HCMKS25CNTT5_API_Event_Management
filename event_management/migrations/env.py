@@ -5,6 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 from app.db.database import Base
+from app.core.config import settings
+import app.models
 
 config = context.config
 
@@ -14,7 +16,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-target_metadata = None
+target_metadata = Base.metadata
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 
 
@@ -43,7 +46,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata= Base.metadata
+            connection=connection, target_metadata=target_metadata
         )
 
         with context.begin_transaction():

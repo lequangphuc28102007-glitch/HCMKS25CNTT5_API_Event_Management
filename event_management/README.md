@@ -18,6 +18,12 @@ copy .env.example .env
 uvicorn app.main:app --reload
 ```
 
+Apply database migrations before the first run:
+
+```powershell
+alembic upgrade head
+```
+
 Open `http://127.0.0.1:8000/docs` for Swagger UI.
 
 ## Endpoints

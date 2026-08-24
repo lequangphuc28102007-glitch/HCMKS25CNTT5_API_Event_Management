@@ -10,8 +10,8 @@ class UserStatus(str, Enum):
     INACTIVE = "inactive"
 
 class UserBase(BaseModel):
-    username: str
     email: str
+    full_name: str
 
 class UserCreate(UserBase):
     password: str
@@ -21,6 +21,7 @@ class UserUpdate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    role: UserRole
+    is_active: UserStatus
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
