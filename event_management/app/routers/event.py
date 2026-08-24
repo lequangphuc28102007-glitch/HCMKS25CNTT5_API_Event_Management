@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session, Query
 from typing import List
 from datetime import datetime

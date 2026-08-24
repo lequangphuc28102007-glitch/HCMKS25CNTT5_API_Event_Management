@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from jose.exceptions import ExpiredSignatureError, InvalidTokenError
 
 from app.core.config import settings
 
