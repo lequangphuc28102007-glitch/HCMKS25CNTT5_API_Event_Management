@@ -1,27 +1,27 @@
-from pydantic import BaseModel
-from enum import Enum
+from datetime import datetime
 
-class UserRole(str, Enum):
-    USER = "USER"
-    ADMIN = "ADMIN"
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-class UserStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+from app.models.user import UserRole
+
 
 class UserBase(BaseModel):
-    email: str
-    full_name: str
+    email: EmailStr
+    full_name: str = Field(min_length=1, max_length=255)
+
 
 class UserCreate(UserBase):
-    password: str
+    """Dùng cho POST /auth/register"""
 
-class UserUpdate(UserBase):
-    pass
+    password: str = Field(min_length=6, max_length=128)
+
 
 class UserResponse(UserBase):
+    """Trả về cho client - KHÔNG bao giờ chứa password_hash"""
+
     id: int
     role: UserRole
-    is_active: UserStatus
+    is_active: bool
+    created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)

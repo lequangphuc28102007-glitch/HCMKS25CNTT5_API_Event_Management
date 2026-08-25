@@ -1,38 +1,43 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List
 
-from app.schemas.event_staff import EventStaffResponse
-from app.schemas.event_task import EventTaskResponse    
+from app.models.event import EventStaffRole
+from app.schemas.user import UserResponse
+
 
 class EventBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    location: Optional[str] = None
-    starts_at: datetime
-    end_at: datetime
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
 
 
 class EventCreate(EventBase):
     pass
 
+
 class EventUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    location: Optional[str] = None
-    starts_at: Optional[datetime] = None
+    """Tất cả field optional để hỗ trợ PATCH - chỉ cập nhật field được gửi lên."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+
 
 class EventResponse(EventBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     owner_id: int
+    created_at: datetime
 
-class EventDetail(EventResponse):
-    staff: List[EventStaffResponse] = []
-    tasks: List[EventTaskResponse] = []
+    model_config = ConfigDict(from_attributes=True)
 
 
-class AddMemberRequest(BaseModel):
+class EventMemberAdd(BaseModel):
     user_id: int
+
+
+class EventMemberResponse(BaseModel):
+    user_id: int
+    role: EventStaffRole
+    joined_at: datetime
+    user: UserResponse
+
+    model_config = ConfigDict(from_attributes=True)

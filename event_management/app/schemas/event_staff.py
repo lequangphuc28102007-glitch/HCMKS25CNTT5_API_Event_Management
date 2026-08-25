@@ -11,3 +11,7 @@ class EventStaffResponse(EventStaffBase):
 
     class Config:
         from_attributes = True
+
+
+class AddMemberRequest(BaseModel):
+    user_id: int

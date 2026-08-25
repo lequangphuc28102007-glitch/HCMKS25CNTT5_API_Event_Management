@@ -1,38 +1,37 @@
-from enum import Enum
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
 
-class TaskStatus(str, Enum):
-    TODO = "TODO"
-    IN_PROGRESS = "IN_PROGRESS"
-    DONE = "DONE"
-
-
-class TaskPriority(str, Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
+from app.models.event_task import TaskPriority, TaskStatus
 
 
 class EventTaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    deadline: Optional[datetime] = None
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    due_date: datetime | None = None
+    priority: TaskPriority = TaskPriority.MEDIUM
+
 
 class EventTaskCreate(EventTaskBase):
-    pass
+    assignee_id: int | None = None
+
 
 class EventTaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    deadline: Optional[datetime] = None
+    """Tất cả field optional để hỗ trợ PATCH - chỉ ghi đè field được gửi lên."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    due_date: datetime | None = None
+    priority: TaskPriority | None = None
+    status: TaskStatus | None = None
+    assignee_id: int | None = None
 
 
-class EventTaskResponse(EventTaskCreate):
-
+class EventTaskResponse(EventTaskBase):
     id: int
     event_id: int
+    assignee_id: int | None
+    status: TaskStatus
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
