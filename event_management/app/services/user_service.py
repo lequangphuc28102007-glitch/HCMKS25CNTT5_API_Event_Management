@@ -4,7 +4,6 @@ from app.models.user import User
 
 
 def search_users(db: Session, keyword: str | None, is_active: bool | None) -> list[User]:
-    """GET /users - search theo tên/email và lọc theo trạng thái, chỉ dùng cho Admin."""
     query = db.query(User)
 
     if keyword:

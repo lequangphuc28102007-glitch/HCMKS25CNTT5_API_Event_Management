@@ -1,4 +1,4 @@
-"""
+"""git
 Import tất cả model ở đây để khi Base.metadata.create_all() chạy,
 SQLAlchemy nhận biết đủ toàn bộ bảng cần tạo.
 """

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.core.exceptions import register_exception_handlers
 from app.db.database import Base, engine
-from app.models import Event, EventStaff, EventTask, User  # noqa: F401 (đảm bảo model được đăng ký)
+from app.models import Event, EventStaff, EventTask, User  
 from app.routers import auth, event, event_task, users
 
 app = FastAPI(
@@ -13,7 +13,6 @@ app = FastAPI(
 
 register_exception_handlers(app)
 
-# Tạo bảng nếu chưa tồn tại (đủ dùng cho project sinh viên, không cần Alembic)
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)

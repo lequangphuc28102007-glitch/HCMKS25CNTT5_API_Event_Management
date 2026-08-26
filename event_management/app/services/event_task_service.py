@@ -12,8 +12,10 @@ ALLOWED_SORT_FIELDS = {"created_at": EventTask.created_at, "due_date": EventTask
 
 
 def create_task(db: Session, event: Event, data: EventTaskCreate) -> EventTask:
-    """Thành viên sự kiện tạo công việc; nếu có assignee_id thì assignee phải thuộc sự kiện."""
     if data.assignee_id is not None:
+        user = db.get(User, data.assignee_id)
+        if user is None or not user.is_active:
+            raise BadRequestException("Người được giao việc không tồn tại hoặc đã bị vô hiệu hóa")
         membership = get_membership(db, event.id, data.assignee_id)
         if membership is None:
             raise BadRequestException("Người được giao việc phải là thành viên của sự kiện")
@@ -44,7 +46,6 @@ def list_tasks(
     page: int,
     size: int,
 ) -> tuple[list[EventTask], int]:
-    """List/filter/search/pagination/sort công việc, chỉ trong phạm vi 1 sự kiện."""
     query = db.query(EventTask).filter(EventTask.event_id == event_id)
 
     if status_filter is not None:
@@ -54,12 +55,15 @@ def list_tasks(
     if assignee_id is not None:
         query = query.filter(EventTask.assignee_id == assignee_id)
     if search:
-        query = query.filter(EventTask.title.ilike(f"%{search}%"))
+        search_term = search.strip()
+        if search_term:
+            query = query.filter(EventTask.title.ilike(f"%{search_term}%"))
 
     total = query.count()
 
-    sort_column = ALLOWED_SORT_FIELDS.get(sort_by, EventTask.created_at)
-    order_func = desc if sort_order.lower() == "desc" else asc
+    sort_key = sort_by.strip().lower() if sort_by else "created_at"
+    sort_column = ALLOWED_SORT_FIELDS.get(sort_key, EventTask.created_at)
+    order_func = desc if (sort_order and sort_order.strip().lower() == "desc") else asc
     query = query.order_by(order_func(sort_column))
 
     items = query.offset((page - 1) * size).limit(size).all()
@@ -67,7 +71,6 @@ def list_tasks(
 
 
 def get_task_in_event_or_404(db: Session, task_id: int) -> EventTask:
-    """Dùng cho GET/PATCH/DELETE /event-tasks/{task_id} - task_id không kèm event_id trong URL."""
     task = db.get(EventTask, task_id)
     if task is None:
         raise NotFoundException("Công việc sự kiện không tồn tại")
@@ -75,22 +78,18 @@ def get_task_in_event_or_404(db: Session, task_id: int) -> EventTask:
 
 
 def check_member_of_task_event(db: Session, task: EventTask, current_user: User) -> None:
-    """Chỉ thành viên thuộc sự kiện chứa task này mới được xem/thao tác."""
     membership = get_membership(db, task.event_id, current_user.id)
     if membership is None:
         raise ForbiddenException("Bạn không phải thành viên của sự kiện chứa công việc này")
 
 
 def check_can_modify_task(db: Session, task: EventTask, current_user: User) -> None:
-    """
-    Permission matrix cho update/delete task:
-    - Owner của sự kiện: được sửa/xóa mọi task trong sự kiện.
-    - Assignee (người được giao việc): được sửa/xóa chính task của mình.
-    - Member khác: không có quyền.
-    """
     event = db.get(Event, task.event_id)
-    is_owner = event is not None and event.owner_id == current_user.id
-    is_assignee = task.assignee_id == current_user.id
+    if event is None:
+        raise NotFoundException("Sự kiện chứa công việc này không tồn tại")
+
+    is_owner = event.owner_id == current_user.id
+    is_assignee = task.assignee_id is not None and task.assignee_id == current_user.id
 
     if not (is_owner or is_assignee):
         raise ForbiddenException("Bạn không có quyền sửa/xóa công việc này")
@@ -100,6 +99,9 @@ def update_task(db: Session, event: Event, task: EventTask, data: EventTaskUpdat
     update_data = data.model_dump(exclude_unset=True)
 
     if "assignee_id" in update_data and update_data["assignee_id"] is not None:
+        user = db.get(User, update_data["assignee_id"])
+        if user is None or not user.is_active:
+            raise BadRequestException("Người được giao việc không tồn tại hoặc đã bị vô hiệu hóa")
         membership = get_membership(db, event.id, update_data["assignee_id"])
         if membership is None:
             raise BadRequestException("Người được giao việc phải là thành viên của sự kiện")
