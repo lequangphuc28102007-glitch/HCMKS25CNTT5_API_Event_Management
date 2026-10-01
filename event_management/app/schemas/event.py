@@ -58,6 +58,18 @@ class EventUpdate(BaseModel):
         return v
 
 
+class EventReplace(BaseModel):         
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Tên sự kiện không được để trống")
+        return stripped
+
 class EventResponse(EventBase):
     id: int = Field(..., description="Mã định danh duy nhất của sự kiện", example=1)
     owner_id: int = Field(..., description="ID của người tạo (OWNER) sự kiện", example=1)
@@ -68,6 +80,7 @@ class EventResponse(EventBase):
 
 class EventMemberAdd(BaseModel):
     user_id: int = Field(..., description="ID của người dùng cần thêm vào sự kiện", example=2)
+    
 
 
 class EventMemberResponse(BaseModel):

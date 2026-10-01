@@ -14,4 +14,4 @@ class EventStaffResponse(EventStaffBase):
 
 
 class AddMemberRequest(BaseModel):
-    user_id: int
+    user_id: int 

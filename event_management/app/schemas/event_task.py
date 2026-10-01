@@ -46,49 +46,31 @@ class EventTaskCreate(EventTaskBase):
     )
 
 
-class EventTaskUpdate(BaseModel):
-    title: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=255,
-        description="Tiêu đề mới của công việc",
-        example="Hoàn thiện backdrop sân khấu chính",
-    )
-    description: str | None = Field(
-        default=None,
-        description="Mô tả cập nhật của công việc",
-        example="Đã in ấn xong, đang tiến hành căng khung sân khấu.",
-    )
-    due_date: datetime | None = Field(
-        default=None,
-        description="Hạn chót mới",
-        example="2026-09-02T12:00:00",
-    )
-    priority: TaskPriority | None = Field(
-        default=None,
-        description="Độ ưu tiên mới (LOW, MEDIUM, HIGH)",
-        example=TaskPriority.HIGH,
-    )
-    status: TaskStatus | None = Field(
-        default=None,
-        description="Trạng thái tiến độ công việc (TODO, IN_PROGRESS, DONE)",
-        example=TaskStatus.IN_PROGRESS,
-    )
-    assignee_id: int | None = Field(
-        default=None,
-        description="ID thành viên được phân công lại (truyền null để bỏ phân công)",
-        example=2,
-    )
+class EventTaskUpdate(BaseModel):          
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
 
-    @field_validator("title")
+    @field_validator("name")
     @classmethod
-    def validate_title(cls, v: str | None) -> str | None:
+    def validate_name(cls, v: str | None) -> str | None:
         if v is not None:
             stripped = v.strip()
             if not stripped:
-                raise ValueError("Tiêu đề công việc không được để trống hoặc chỉ chứa khoảng trắng")
+                raise ValueError("Tên sự kiện không được để trống")
             return stripped
         return v
+
+class EventTaskReplace(BaseModel):         
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Tên sự kiện không được để trống")
+        return stripped
 
 
 class EventTaskResponse(EventTaskBase):

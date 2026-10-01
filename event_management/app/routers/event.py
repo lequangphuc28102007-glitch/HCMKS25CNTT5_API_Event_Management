@@ -13,15 +13,14 @@ from app.schemas.event import (
     EventMemberResponse,
     EventResponse,
     EventUpdate,
+    EventReplace
 )
 from app.services import event_service
 
 router = APIRouter(prefix="/events")
 
 
-# ============================================================================
-# EVENT CRUD ENDPOINTS (Tag: Events)
-# ============================================================================
+
 
 
 @router.post(
@@ -162,6 +161,14 @@ def get_event(event: Event = Depends(require_event_member)):
         },
     },
 )
+def patch_event(
+    data: EventReplace,                 
+    event: Event = Depends(require_event_owner),
+    db: Session = Depends(get_db),
+):
+    return event_service.update_event(db, event, data)
+
+
 @router.put(
     "/{event_id}",
     response_model=EventResponse,
@@ -196,7 +203,7 @@ def get_event(event: Event = Depends(require_event_member)):
         },
     },
 )
-def update_event(
+def put_event(
     data: EventUpdate,
     event: Event = Depends(require_event_owner),
     db: Session = Depends(get_db),
@@ -237,12 +244,6 @@ def delete_event(
     db: Session = Depends(get_db),
 ):
     event_service.delete_event(db, event)
-
-
-# ============================================================================
-# EVENT MEMBERS ENDPOINTS (Tag: Event Members)
-# ============================================================================
-
 
 @router.post(
     "/{event_id}/members",

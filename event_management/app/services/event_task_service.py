@@ -6,7 +6,7 @@ from app.dependencies.permissions import get_membership
 from app.models.event import Event
 from app.models.event_task import EventTask, TaskPriority, TaskStatus
 from app.models.user import User
-from app.schemas.event_task import EventTaskCreate, EventTaskUpdate
+from app.schemas.event_task import EventTaskCreate, EventTaskUpdate, EventTaskReplace
 
 ALLOWED_SORT_FIELDS = {"created_at": EventTask.created_at, "due_date": EventTask.due_date}
 
@@ -95,23 +95,21 @@ def check_can_modify_task(db: Session, task: EventTask, current_user: User) -> N
         raise ForbiddenException("Bạn không có quyền sửa/xóa công việc này")
 
 
-def update_task(db: Session, event: Event, task: EventTask, data: EventTaskUpdate) -> EventTask:
+def update_event(db, event, data: EventTaskUpdate) -> Event:   
     update_data = data.model_dump(exclude_unset=True)
-
-    if "assignee_id" in update_data and update_data["assignee_id"] is not None:
-        user = db.get(User, update_data["assignee_id"])
-        if user is None or not user.is_active:
-            raise BadRequestException("Người được giao việc không tồn tại hoặc đã bị vô hiệu hóa")
-        membership = get_membership(db, event.id, update_data["assignee_id"])
-        if membership is None:
-            raise BadRequestException("Người được giao việc phải là thành viên của sự kiện")
-
     for field, value in update_data.items():
-        setattr(task, field, value)
-
+        setattr(event, field, value)
     db.commit()
-    db.refresh(task)
-    return task
+    db.refresh(event)
+    return event
+
+
+def replace_event(db, event, data: EventTaskReplace) -> Event:  
+    event.name = data.name
+    event.description = data.description   
+    db.commit()
+    db.refresh(event)
+    return event
 
 
 def delete_task(db: Session, task: EventTask) -> None:

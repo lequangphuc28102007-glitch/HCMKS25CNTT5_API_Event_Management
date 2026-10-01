@@ -8,7 +8,7 @@ from app.models.event import Event
 from app.models.event_task import TaskPriority, TaskStatus
 from app.models.user import User
 from app.schemas.common import ErrorResponse, PaginatedResponse, ValidationErrorResponse
-from app.schemas.event_task import EventTaskCreate, EventTaskResponse, EventTaskUpdate
+from app.schemas.event_task import EventTaskCreate, EventTaskResponse, EventTaskUpdate, EventTaskReplace
 from app.services import event_task_service
 
 router = APIRouter(tags=["Event Tasks"])
@@ -229,6 +229,13 @@ def get_task(
         },
     },
 )
+def patch_event(
+    data: EventTaskUpdate,                 
+    event: Event = Depends(require_event_member),
+    db: Session = Depends(get_db),
+):
+    return event_task_service.update_event(db, event, data)
+
 @router.put(
     "/event-tasks/{task_id}",
     response_model=EventTaskResponse,
@@ -266,17 +273,13 @@ def get_task(
         },
     },
 )
-def update_task(
-    task_id: int,
-    data: EventTaskUpdate,
+@router.put("/{event_id}", response_model=EventTaskResponse)
+def put_event(
+    data: EventTaskReplace,                
+    event: Event = Depends(require_event_member),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    task = event_task_service.get_task_in_event_or_404(db, task_id)
-    event_task_service.check_member_of_task_event(db, task, current_user)
-    event_task_service.check_can_modify_task(db, task, current_user)
-    event = db.get(Event, task.event_id)
-    return event_task_service.update_task(db, event, task, data)
+    return event_task_service.replace_event(db, event, data)
 
 
 @router.delete(

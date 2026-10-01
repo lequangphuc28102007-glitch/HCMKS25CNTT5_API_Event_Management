@@ -4,7 +4,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.event import Event, EventStaff, EventStaffRole
 from app.models.event_task import EventTask
 from app.models.user import User
-from app.schemas.event import EventCreate, EventUpdate
+from app.schemas.event import EventCreate, EventUpdate, EventReplace
 
 
 def create_event(db: Session, data: EventCreate, current_user: User) -> Event:
@@ -35,11 +35,18 @@ def list_my_events(db: Session, current_user: User, search: str | None) -> list[
     return query.order_by(Event.created_at.desc()).all()
 
 
-def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
+def update_event(db, event, data: EventUpdate) -> Event:   
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(event, field, value)
+    db.commit()
+    db.refresh(event)
+    return event
 
+
+def replace_event(db, event, data: EventReplace) -> Event: 
+    event.name = data.name
+    event.description = data.description   
     db.commit()
     db.refresh(event)
     return event
@@ -88,7 +95,6 @@ def remove_member(db: Session, event: Event, user_id: int) -> None:
     if staff.role == EventStaffRole.OWNER:
         raise BadRequestException("Không thể xóa owner của sự kiện")
 
-    # Unassign tasks in this event assigned to the removed member
     db.query(EventTask).filter(
         EventTask.event_id == event.id, EventTask.assignee_id == user_id
     ).update({EventTask.assignee_id: None})

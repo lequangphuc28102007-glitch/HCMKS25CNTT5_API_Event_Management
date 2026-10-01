@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/event-staff", tags=["event_staff"])
 @router.post("/events/{event_id}/members")
 def add_member(
     event_id: int,
-    request: AddMemberRequest,
+    request: AddMemberRequest = Form(...,"tét" ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
